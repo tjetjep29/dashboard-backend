@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NU Digital Intelligence Dashboard — Muktamar 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+  :root {
+    --c-bg: #0a1628;
+    --c-panel: #0f2240;
+    --c-panel2: #142d52;
+    --c-border: rgba(6,150,100,0.2);
+    --c-green: #06966a;
+    --c-green-light: #10b981;
+    --c-gold: #d97706;
+    --c-gold-light: #f59e0b;
+    --c-teal: #0891b2;
+    --c-text: #e2e8f0;
+    --c-muted: #94a3b8;
+    --c-accent: #34d399;
+    --radius: 12px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--c-bg); color: var(--c-text); font-family: 'Inter', sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  /* ── TOP HEADER ── */
+  .topbar {
+    background: linear-gradient(135deg, #06966a 0%, #065f46 50%, #0f2240 100%);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--c-gold);
+    position: sticky; top:0; z-index:100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .logo-badge { background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700; letter-spacing:1px; color:#fff; }
+  .topbar-title { font-family:'Playfair Display', serif; font-size:20px; color:#fff; line-height:1.2; }
+  .topbar-sub { font-size:10px; color:rgba(255,255,255,0.7); }
+  .live-dot { display:inline-flex; align-items:center; gap:6px; background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.4); border-radius:20px; padding:4px 12px; font-size:11px; color:#34d399; font-weight:600; }
+  .live-dot::before { content:''; width:7px; height:7px; background:#34d399; border-radius:50%; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+
+  /* ── LAYOUT ── */
+  .dashboard { display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 60px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar { background: var(--c-panel); border-right:1px solid var(--c-border); padding:16px 0; }
+  .nav-section { padding:8px 16px 4px; font-size:10px; font-weight:700; color:var(--c-muted); letter-spacing:1.5px; text-transform:uppercase; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; font-size:13px; color:var(--c-muted); transition:all 0.2s; border-left:3px solid transparent; }
+  .nav-item:hover { background:rgba(6,150,106,0.08); color:var(--c-text); }
+  .nav-item.active { background:rgba(6,150,106,0.15); color:var(--c-green-light); border-left-color:var(--c-green-light); font-weight:600; }
+  .nav-icon { font-size:15px; width:20px; text-align:center; }
+
+  /* ── MAIN CONTENT ── */
+  .main { padding:20px; overflow-y:auto; }
+
+  .section { display:none; }
+  .section.active { display:block; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .kpi-card { background: var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; position:relative; overflow:hidden; transition:transform 0.2s; }
+  .kpi-card:hover { transform:translateY(-2px); }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--c-green), var(--c-accent)); }
+  .kpi-card.gold::before { background: linear-gradient(90deg, var(--c-gold), var(--c-gold-light)); }
+  .kpi-card.teal::before { background: linear-gradient(90deg, var(--c-teal), #22d3ee); }
+  .kpi-card.blue::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+  .kpi-label { font-size:10px; color:var(--c-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
+  .kpi-value { font-size:26px; font-weight:700; font-family:'Playfair Display',serif; line-height:1; }
+  .kpi-card.green .kpi-value { color:var(--c-accent); }
+  .kpi-card.gold .kpi-value { color:var(--c-gold-light); }
+  .kpi-card.teal .kpi-value { color:#22d3ee; }
+  .kpi-card.blue .kpi-value { color:#a78bfa; }
+  .kpi-trend { font-size:11px; margin-top:6px; color:var(--c-muted); }
+  .kpi-trend .up { color:#34d399; }
+  .kpi-trend .down { color:#f87171; }
+
+  /* ── CHART CARDS ── */
+  .charts-row { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; margin-bottom:20px; }
+  .chart-card { background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; }
+  .chart-title { font-size:13px; font-weight:700; color:var(--c-text); margin-bottom:4px; }
+  .chart-sub { font-size:10px; color:var(--c-muted); margin-bottom:14px; }
+  .chart-wrap { position:relative; height:220px; }
+
+  /* ── ROADMAP TABLE ── */
+  .table-card { background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); overflow:hidden; margin-bottom:20px; }
+  .table-header { padding:14px 18px; background:var(--c-panel2); display:flex; justify-content:space-between; align-items:center; }
+  .table-title { font-size:13px; font-weight:700; color:var(--c-text); }
+  table { width:100%; border-collapse:collapse; }
+  th { padding:10px 14px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--c-muted); text-align:left; border-bottom:1px solid var(--c-border); }
+  td { padding:10px 14px; font-size:12px; color:var(--c-text); border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; }
+  tr:hover td { background:rgba(6,150,106,0.04); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; }
+  .badge.green { background:rgba(52,211,153,0.15); color:#34d399; }
+  .badge.gold { background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .badge.blue { background:rgba(99,102,241,0.15); color:#818cf8; }
+  .badge.orange { background:rgba(251,146,60,0.15); color:#fb923c; }
+
+  /* ── AI CHAT SECTION ── */
+  .ai-panel { display:grid; grid-template-columns:1fr 360px; gap:16px; }
+  .ai-chat { background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); display:flex; flex-direction:column; height:520px; }
+  .ai-chat-header { padding:14px 18px; background:var(--c-panel2); border-bottom:1px solid var(--c-border); border-radius:var(--radius) var(--radius) 0 0; display:flex; align-items:center; gap:10px; }
+  .ai-avatar { width:32px; height:32px; border-radius:50%; background: linear-gradient(135deg, #06966a, #0891b2); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .ai-chat-title { font-size:13px; font-weight:700; }
+  .ai-chat-sub { font-size:10px; color:var(--c-muted); }
+  .chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .chat-messages::-webkit-scrollbar { width:4px; }
+  .chat-messages::-webkit-scrollbar-track { background:transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background:var(--c-green); border-radius:2px; }
+  .msg { max-width:88%; }
+  .msg.user { align-self:flex-end; }
+  .msg.ai { align-self:flex-start; }
+  .msg-bubble { padding:10px 14px; border-radius:12px; font-size:12.5px; line-height:1.55; }
+  .msg.user .msg-bubble { background: linear-gradient(135deg, #06966a, #047857); color:#fff; border-radius:12px 12px 2px 12px; }
+  .msg.ai .msg-bubble { background:var(--c-panel2); color:var(--c-text); border-radius:12px 12px 12px 2px; border:1px solid var(--c-border); }
+  .msg-meta { font-size:10px; color:var(--c-muted); margin-top:3px; }
+  .msg.user .msg-meta { text-align:right; }
+  .typing-indicator { display:flex; gap:4px; align-items:center; padding:4px 0; }
+  .typing-dot { width:6px; height:6px; background:var(--c-muted); border-radius:50%; animation:typing 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay:0.2s; }
+  .typing-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes typing { 0%,100%{opacity:0.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
+  .chat-input-area { padding:12px; border-top:1px solid var(--c-border); display:flex; gap:8px; }
+  .chat-input { flex:1; background:var(--c-panel2); border:1px solid var(--c-border); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--c-text); outline:none; font-family:inherit; resize:none; }
+  .chat-input:focus { border-color:var(--c-green); }
+  .send-btn { background: linear-gradient(135deg, var(--c-green), var(--c-teal)); border:none; border-radius:8px; padding:10px 16px; color:#fff; font-weight:700; cursor:pointer; font-size:13px; transition:opacity 0.2s; white-space:nowrap; }
+  .send-btn:hover { opacity:0.85; }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* Prompt suggestions */
+  .prompt-chips { display:flex; flex-direction:column; gap:8px; }
+  .chip-card { background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:12px; }
+  .chip-title { font-size:11px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; }
+  .chip { padding:7px 10px; background:var(--c-panel2); border:1px solid var(--c-border); border-radius:7px; font-size:11px; color:var(--c-text); cursor:pointer; transition:all 0.2s; margin-bottom:5px; display:block; width:100%; text-align:left; }
+  .chip:hover { background:rgba(6,150,106,0.2); border-color:var(--c-green); color:var(--c-accent); }
+
+  /* ── FILANTROPI SECTION ── */
+  .fin-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+
+  /* ── INFRA SECTION ── */
+  .infra-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+  .infra-card { background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; text-align:center; }
+  .infra-icon { font-size:32px; margin-bottom:8px; }
+  .infra-name { font-size:12px; font-weight:700; color:var(--c-text); margin-bottom:4px; }
+  .infra-desc { font-size:10px; color:var(--c-muted); }
+  .infra-status { margin-top:8px; }
+
+  /* ── SECTION HEADER ── */
+  .sec-header { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .sec-icon { font-size:22px; }
+  .sec-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--c-text); }
+  .sec-badge { font-size:10px; background:rgba(6,150,106,0.15); color:var(--c-accent); border:1px solid rgba(6,150,106,0.3); padding:2px 8px; border-radius:4px; font-weight:600; }
+
+  /* ── FOOTER ── */
+  .footer-bar { background:var(--c-panel); border-top:1px solid var(--c-border); padding:10px 24px; font-size:10px; color:var(--c-muted); display:flex; justify-content:space-between; align-items:center; }
+
+  /* scrollbar global */
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:var(--c-bg); }
+  ::-webkit-scrollbar-thumb { background:var(--c-green); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-badge">NU DIGITAL</div>
+    <div>
+      <div class="topbar-title">Intelligence Dashboard — Muktamar MIP IV 2026</div>
+      <div class="topbar-sub">UIN Sunan Kudus • 26–27 Juni 2026 • Powered by Claude AI</div>
+    </div>
+  </div>
+  <div class="live-dot">LIVE DEMO</div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="dashboard">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">Dashboard</div>
+    <div class="nav-item active" onclick="showSection('overview','this')">
+      <span class="nav-icon">🏠</span> Overview KPI
+    </div>
+    <div class="nav-item" onclick="showSection('roadmap','this')">
+      <span class="nav-icon">🗺️</span> Roadmap 2026–2030
+    </div>
+
+    <div class="nav-section" style="margin-top:10px">Ekosistem</div>
+    <div class="nav-item" onclick="showSection('cloud','this')">
+      <span class="nav-icon">☁️</span> Cloud NU (SIPNU)
+    </div>
+    <div class="nav-item" onclick="showSection('filantropi','this')">
+      <span class="nav-icon">💰</span> Koin NU & QRIS
+    </div>
+    <div class="nav-item" onclick="showSection('pesantren','this')">
+      <span class="nav-icon">🕌</span> Pesantren Cerdas
+    </div>
+
+    <div class="nav-section" style="margin-top:10px">AI Tools</div>
+    <div class="nav-item" onclick="showSection('aiassist','this')">
+      <span class="nav-icon">🤖</span> Asisten AI NU
+    </div>
+
+    <div style="padding:16px; margin-top:20px; background:rgba(6,150,106,0.08); border-radius:8px; margin:16px 10px 0;">
+      <div style="font-size:10px; font-weight:700; color:var(--c-green-light); margin-bottom:6px;">ℹ️ TENTANG DEMO</div>
+      <div style="font-size:10px; color:var(--c-muted); line-height:1.5;">Dashboard ini menggunakan Claude API untuk analisis real-time data transformasi digital NU.</div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ══════ OVERVIEW ══════ -->
+    <section class="section active" id="overview">
+      <div class="sec-header">
+        <span class="sec-icon">🏠</span>
+        <span class="sec-title">Overview Transformasi Digital NU</span>
+        <span class="sec-badge">Muktamar MIP IV 2026</span>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-label">Anggota Nahdliyin</div>
+          <div class="kpi-value">95 Jt+</div>
+          <div class="kpi-trend"><span class="up">▲ 12%</span> pertumbuhan 2024–2026</div>
+        </div>
+        <div class="kpi-card gold">
+          <div class="kpi-label">Koin NU PCNU Sragen</div>
+          <div class="kpi-value">Rp600Jt</div>
+          <div class="kpi-trend"><span class="up">▲ 340%</span> vs sebelum digitalisasi</div>
+        </div>
+        <div class="kpi-card teal">
+          <div class="kpi-label">Pesantren Terdaftar</div>
+          <div class="kpi-value">36.400+</div>
+          <div class="kpi-trend"><span class="up">▲ 8%</span> via Digdaya NU 2025</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Target LAZISNU 2027</div>
+          <div class="kpi-value">100%</div>
+          <div class="kpi-trend">Adopsi QRIS seluruh unit</div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Pertumbuhan Koin NU Digital (Pilot PCNU)</div>
+          <div class="chart-sub">Penghimpunan bulanan (miliar rupiah) — 7 Pilot Project PBNU</div>
+          <div class="chart-wrap">
+            <canvas id="coinChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Prioritas Transformasi MIP IV</div>
+          <div class="chart-sub">Skala urgensitas berdasarkan kajian strategis</div>
+          <div class="chart-wrap">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUSJIGANG CARDS -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px;">
+        <div style="background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; border-top:3px solid #06966a;">
+          <div style="font-size:28px; margin-bottom:8px;">🌟</div>
+          <div style="font-size:16px; font-weight:700; color:#34d399; margin-bottom:4px;">BAGUS — Etika Digital</div>
+          <div style="font-size:11px; color:var(--c-muted); line-height:1.5;">Tata kelola media digital, validasi informasi (tabayyun), transparansi akuntabilitas. Cyber Citizenship berbasis nilai Aswaja.</div>
+        </div>
+        <div style="background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; border-top:3px solid #0891b2;">
+          <div style="font-size:28px; margin-bottom:8px;">📡</div>
+          <div style="font-size:16px; font-weight:700; color:#22d3ee; margin-bottom:4px;">NGAJI — Literasi Sains</div>
+          <div style="font-size:11px; color:var(--c-muted); line-height:1.5;">Penguasaan AI, Big Data, Cloud Computing. Produksi evidence-based policy berbasis riset akademis NU.</div>
+        </div>
+        <div style="background:var(--c-panel); border:1px solid var(--c-border); border-radius:var(--radius); padding:16px; border-top:3px solid #d97706;">
+          <div style="font-size:28px; margin-bottom:8px;">💹</div>
+          <div style="font-size:16px; font-weight:700; color:#f59e0b; margin-bottom:4px;">DAGANG — Ekosistem Digital</div>
+          <div style="font-size:11px; color:var(--c-muted); line-height:1.5;">QRIS Koin NU, digitalisasi UMKM Nahdliyin, marketplace berbasis jamaah. Kemandirian finansial dari hegemoni eksternal.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ ROADMAP ══════ -->
+    <section class="section" id="roadmap">
+      <div class="sec-header">
+        <span class="sec-icon">🗺️</span>
+        <span class="sec-title">Roadmap Strategis 2026–2030</span>
+        <span class="sec-badge">4 Fase Transformasi</span>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Matriks Eksekusi Strategis — Transformasi Digital NU</span>
+          <span class="badge green">Aktif 2026</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fase</th><th>Periode</th><th>Fokus Teknologi</th><th>Inisiatif Organisasi</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:#34d399">F1</strong></td>
+              <td><span class="badge green">2026–2027</span></td>
+              <td>Migrasi Cloud Multi-tenant SaaS · SSO NU.ID · Audit Privacy-by-Design UU PDP</td>
+              <td>Sinkronisasi SIPNU–Digdaya · Bimtek paperless PCNU & MWCNU</td>
+              <td><span class="badge green">🟢 Berjalan</span></td>
+            </tr>
+            <tr>
+              <td><strong style="color:#f59e0b">F2</strong></td>
+              <td><span class="badge gold">2027–2028</span></td>
+              <td>Standarisasi QRIS 100% LAZISNU · Geomapping aset wakaf & UMKM desa</td>
+              <td>Replikasi "Gocap" Koin NU Digital nasional · Inkubasi agrikultur Gusjigang</td>
+              <td><span class="badge gold">🟡 Persiapan</span></td>
+            </tr>
+            <tr>
+              <td><strong style="color:#818cf8">F3</strong></td>
+              <td><span class="badge blue">2028–2029</span></td>
+              <td>Sensor IoT Pesantren · Smart Trash · Irigasi Otomatis · Perpustakaan VR</td>
+              <td>Inkubator "Pesantren Desa Cerdas" · Launching Apps Elderly Care NU</td>
+              <td><span class="badge blue">🔵 Perencanaan</span></td>
+            </tr>
+            <tr>
+              <td><strong style="color:#fb923c">F4</strong></td>
+              <td><span class="badge orange">2029–2030</span></td>
+              <td>Predictive Analytics · Machine Learning Digdaya AI-NU · Enkripsi tingkat lanjut</td>
+              <td>Evidence-based policy advocacy · NU sebagai Dirigen Keadilan Peradaban Digital</td>
+              <td><span class="badge orange">🟠 Visioner</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+        <div style="background:var(--c-panel); border:1px solid rgba(52,211,153,0.3); border-radius:var(--radius); padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">☁️</div>
+          <div style="font-size:11px; font-weight:700; color:#34d399; margin-bottom:4px;">Konsolidasi Arsitektur</div>
+          <div style="font-size:10px; color:var(--c-muted);">Multi-tenant SaaS + NU.ID SSO</div>
+        </div>
+        <div style="background:var(--c-panel); border:1px solid rgba(245,158,11,0.3); border-radius:var(--radius); padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">💳</div>
+          <div style="font-size:11px; font-weight:700; color:#f59e0b; margin-bottom:4px;">Inklusi Finansial</div>
+          <div style="font-size:10px; color:var(--c-muted);">QRIS + Koin NU Digital nasional</div>
+        </div>
+        <div style="background:var(--c-panel); border:1px solid rgba(129,140,248,0.3); border-radius:var(--radius); padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">🏘️</div>
+          <div style="font-size:11px; font-weight:700; color:#818cf8; margin-bottom:4px;">Masyarakat Sipil Cerdas</div>
+          <div style="font-size:10px; color:var(--c-muted);">IoT + Pesantren Smart Village</div>
+        </div>
+        <div style="background:var(--c-panel); border:1px solid rgba(251,146,60,0.3); border-radius:var(--radius); padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">🧠</div>
+          <div style="font-size:11px; font-weight:700; color:#fb923c; margin-bottom:4px;">Intelijen Data</div>
+          <div style="font-size:10px; color:var(--c-muted);">Big Data + AI Policy Advocacy</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ CLOUD ══════ -->
+    <section class="section" id="cloud">
+      <div class="sec-header">
+        <span class="sec-icon">☁️</span>
+        <span class="sec-title">Arsitektur Cloud NU</span>
+        <span class="sec-badge">SIPNU + Digdaya</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+        <div class="chart-card">
+          <div class="chart-title">📋 SIPNU — Jawa Tengah</div>
+          <div class="chart-sub">Sistem Informasi Pengelolaan NU — KPI Kepengurusan Berjenjang</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+            <div style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:10px; font-size:11px;">✅ Administrasi paperless & arsip cloud terenkripsi</div>
+            <div style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:10px; font-size:11px;">✅ Dashboard KPI real-time PCNU → PRNU</div>
+            <div style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:10px; font-size:11px;">✅ Notulensi & dokumen tervalidasi digital</div>
+            <div style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2); border-radius:8px; padding:10px; font-size:11px;">✅ Evaluasi berbasis digital footprint (bukan asumsi politis)</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🔗 Digdaya NU — Nasional</div>
+          <div class="chart-sub">Digitalisasi Data & Layanan Nahdlatul Ulama — PBNU</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+            <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:8px; padding:10px; font-size:11px;">🔑 Single Sign-On NU.ID — identitas tunggal nasional</div>
+            <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:8px; padding:10px; font-size:11px;">🧠 Digdaya AI-NU berbasis keilmuan Ahlussunnah wal Jamaah</div>
+            <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:8px; padding:10px; font-size:11px;">📜 Penerbitan SK Digital & verifikasi kepengurusan</div>
+            <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:8px; padding:10px; font-size:11px;">📊 Repositori: 36.400+ pesantren, masjid, santri terintegrasi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:20px;">
+        <div class="chart-title">⚖️ Perbandingan Paradigma: Manual vs Digital Terintegrasi</div>
+        <div class="chart-sub">Transformasi tata kelola organisasi NU</div>
+        <table style="margin-top:10px;">
+          <thead><tr><th>Aspek</th><th>Tradisional</th><th style="color:#34d399">Digital Terintegrasi</th></tr></thead>
+          <tbody>
+            <tr><td>Penyimpanan Data</td><td style="color:#f87171">Lemari fisik, rentan rusak/hilang</td><td style="color:#34d399">Cloud terenkripsi, sinkronisasi otomatis</td></tr>
+            <tr><td>Validasi Kinerja</td><td style="color:#f87171">Laporan hardcopy berkala, lambat</td><td style="color:#34d399">Dashboard real-time SIPNU berbasis bukti</td></tr>
+            <tr><td>Identitas Pengurus</td><td style="color:#f87171">Identitas ganda, pendataan berulang</td><td style="color:#34d399">NU.ID tunggal, SSO aman satu pintu</td></tr>
+            <tr><td>Kapasitas Server</td><td style="color:#f87171">Downtime saat beban memuncak</td><td style="color:#34d399">Auto-scaling cloud dinamis</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════ FILANTROPI ══════ -->
+    <section class="section" id="filantropi">
+      <div class="sec-header">
+        <span class="sec-icon">💰</span>
+        <span class="sec-title">Koin NU Digital & QRIS</span>
+        <span class="sec-badge">Kemandirian Finansial</span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-label">PCNU Sragen / Bulan</div>
+          <div class="kpi-value">Rp600Jt</div>
+          <div class="kpi-trend">Konsisten via Koin NU Digital</div>
+        </div>
+        <div class="kpi-card gold">
+          <div class="kpi-label">Pilot Project PBNU</div>
+          <div class="kpi-value">7 PCNU</div>
+          <div class="kpi-trend">Cilacap • Sragen • Batang • Demak • dst</div>
+        </div>
+        <div class="kpi-card teal">
+          <div class="kpi-label">Standar Pembayaran</div>
+          <div class="kpi-value">QRIS</div>
+          <div class="kpi-trend">1 kode universal — semua e-wallet</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Target 2027</div>
+          <div class="kpi-value">100%</div>
+          <div class="kpi-trend">Seluruh unit LAZISNU nasional</div>
+        </div>
+      </div>
+
+      <div class="fin-grid">
+        <div class="chart-card">
+          <div class="chart-title">Distribusi Pemanfaatan Dana Koin NU</div>
+          <div class="chart-sub">Alokasi program sosial dari penghimpunan digital</div>
+          <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Dampak Transformatif Digitalisasi Filantropi</div>
+          <div class="chart-sub">Perbandingan kapasitas penghimpunan (indeks)</div>
+          <div class="chart-wrap"><canvas id="barCompare"></canvas></div>
+        </div>
+      </div>
+
+      <div style="background:rgba(6,150,106,0.08); border:1px solid rgba(6,150,106,0.25); border-radius:var(--radius); padding:16px;">
+        <div style="font-size:13px; font-weight:700; color:#34d399; margin-bottom:10px;">💡 Dampak Filosofis: Dari Donasi ke Saham Komunal</div>
+        <div style="font-size:12px; color:var(--c-muted); line-height:1.7;">
+          Adopsi QRIS dan dashboard reporting transparan telah merevolusi paradigma donatur: tidak lagi sekadar amal karitatif sesaat, melainkan <strong style="color:var(--c-text)">kepemilikan saham komunal</strong> dalam rekonstruksi tatanan institusi sosial. Laporan mutasi elektronik yang auditable meningkatkan trust publik sekaligus membebaskan jajaran pengurus dari tekanan politik kepentingan jangka pendek.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ PESANTREN ══════ -->
+    <section class="section" id="pesantren">
+      <div class="sec-header">
+        <span class="sec-icon">🕌</span>
+        <span class="sec-title">Pesantren Cerdas (Xmart Village NU)</span>
+        <span class="sec-badge">IoT + VR + Geomapping</span>
+      </div>
+
+      <div class="infra-grid">
+        <div class="infra-card">
+          <div class="infra-icon">📚</div>
+          <div class="infra-name">Literasi Digital & VR</div>
+          <div class="infra-desc">Taman baca digital, simulator manasik haji VR, modul Internet Sehat untuk TPQ & Madrasah</div>
+          <div class="infra-status"><span class="badge green">Xmart Village 3.0</span></div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">🗺️</div>
+          <div class="infra-name">Geomapping Wakaf & Desa</div>
+          <div class="infra-desc">Pemetaan spasial tanah wakaf, potensi pertanian jamaah, wisata religi berbasis GIS digital</div>
+          <div class="infra-status"><span class="badge gold">Fase 2 (2027)</span></div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">📡</div>
+          <div class="infra-name">Sensor IoT Lingkungan</div>
+          <div class="infra-desc">Smart Trash Tracking, sensor kualitas air, irigasi otomatis sawah jamaah real-time</div>
+          <div class="infra-status"><span class="badge blue">Fase 3 (2028)</span></div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">👴</div>
+          <div class="infra-name">Elderly Care Apps</div>
+          <div class="infra-desc">Aplikasi "Berbakti" — perawatan lansia jarak jauh, pengingat obat, monitor kesehatan masyayikh</div>
+          <div class="infra-status"><span class="badge blue">Fase 3 (2028)</span></div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">💻</div>
+          <div class="infra-name">UMKM Digital</div>
+          <div class="infra-desc">Platform marketplace berbasis jamaah, literasi e-commerce bagi petani & nelayan NU</div>
+          <div class="infra-status"><span class="badge gold">Fase 2 (2027)</span></div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">🛡️</div>
+          <div class="infra-name">Deteksi Dini Bencana</div>
+          <div class="infra-desc">Sistem peringatan banjir, kebakaran, bencana untuk lingkungan pesantren padat penduduk</div>
+          <div class="infra-status"><span class="badge blue">Fase 3 (2028)</span></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Matriks Xmart Village NU: Transformasi Ekosistem Pesantren</div>
+        <div class="chart-sub">Perbandingan model tradisional vs target pesantren cerdas NU</div>
+        <table style="margin-top:10px;">
+          <thead><tr><th>Komponen</th><th>Model Tradisional</th><th style="color:#34d399">Target Pesantren Cerdas NU</th></tr></thead>
+          <tbody>
+            <tr><td>Pendidikan</td><td style="color:#f87171">Buku cetak terbatas, metode searah</td><td style="color:#34d399">Baca digital + VR Manasik + Internet Sehat</td></tr>
+            <tr><td>Administrasi</td><td style="color:#f87171">Buku catatan fisik, rentan hilang</td><td style="color:#34d399">Geomapping digital + persuratan cloud</td></tr>
+            <tr><td>Lingkungan</td><td style="color:#f87171">Reaktif terhadap bencana</td><td style="color:#34d399">Sensor IoT monitoring waktu nyata</td></tr>
+            <tr><td>Ekonomi</td><td style="color:#f87171">Tengkulak mendominasi harga</td><td style="color:#34d399">E-commerce + marketplace jamaah digital</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════ AI ASISTEN ══════ -->
+    <section class="section" id="aiassist">
+      <div class="sec-header">
+        <span class="sec-icon">🤖</span>
+        <span class="sec-title">Asisten AI — Analisis Strategis NU</span>
+        <span class="sec-badge">Powered by Claude</span>
+      </div>
+
+      <div class="ai-panel">
+        <!-- CHAT -->
+        <div class="ai-chat">
+          <div class="ai-chat-header">
+            <div class="ai-avatar">🕌</div>
+            <div>
+              <div class="ai-chat-title">Asisten Strategis NU Digital</div>
+              <div class="ai-chat-sub">Analisis transformasi digital Nahdlatul Ulama berbasis Claude AI</div>
+            </div>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="msg ai">
+              <div class="msg-bubble">Assalamu'alaikum! 🕌<br><br>Saya adalah Asisten Strategis NU Digital, siap membantu Anda menganalisis transformasi digital Nahdlatul Ulama.<br><br>Anda bisa bertanya tentang: Roadmap 2026–2030, filosofi Gusjigang Digital, arsitektur SIPNU & Digdaya, Koin NU Digital, Pesantren Cerdas, atau kepatuhan UU PDP.</div>
+              <div class="msg-meta">Asisten NU Digital • Siap melayani</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" rows="2" placeholder="Tanya strategi transformasi digital NU..." onkeydown="handleKey(event)"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">Kirim ➤</button>
+          </div>
+        </div>
+
+        <!-- PROMPT CHIPS -->
+        <div class="prompt-chips">
+          <div class="chip-card">
+            <div class="chip-title">💬 Pertanyaan Populer</div>
+            <button class="chip" onclick="setPrompt('Jelaskan konsep Gusjigang Digital dan relevansinya untuk transformasi NU di era AI')">🌟 Konsep Gusjigang Digital</button>
+            <button class="chip" onclick="setPrompt('Apa saja tahapan Roadmap Strategis NU 2026–2030 dan prioritas eksekusinya?')">🗺️ Roadmap 2026–2030</button>
+            <button class="chip" onclick="setPrompt('Bagaimana arsitektur SIPNU dan Digdaya NU saling berintegrasi untuk tata kelola organisasi?')">☁️ Integrasi SIPNU & Digdaya</button>
+            <button class="chip" onclick="setPrompt('Mengapa Koin NU Digital dan QRIS penting untuk kemandirian finansial NU?')">💰 Koin NU & QRIS</button>
+            <button class="chip" onclick="setPrompt('Apa itu model Xmart Village NU dan bagaimana pesantren bisa menjadi Smart Village?')">🕌 Pesantren Cerdas IoT</button>
+            <button class="chip" onclick="setPrompt('Apa ancaman terbesar terhadap data jamaah NU dan bagaimana solusi Privacy-by-Design UU PDP?')">🔒 Kepatuhan UU PDP</button>
+            <button class="chip" onclick="setPrompt('Bagaimana NU bisa menjadi dirigen keadilan peradaban digital Indonesia pada 2030?')">🎯 Visi NU Digital 2030</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <span>🕌 Dashboard Transformasi Digital NU — Muktamar Ilmu Pengetahuan IV PWNU Jawa Tengah 2026</span>
+  <span>Powered by Claude AI • UIN Sunan Kudus • 26–27 Juni 2026</span>
+</div>
+
+<script>
+// ── NAVIGATION ──
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (typeof el === 'string') {
+    event.currentTarget.classList.add('active');
+  }
+  // init charts on first show
+  if (id === 'overview' && !window._overviewInit) { initOverviewCharts(); window._overviewInit = true; }
+  if (id === 'filantropi' && !window._filInit) { initFilantropiCharts(); window._filInit = true; }
+}
+
+// ── CHARTS ──
+function initOverviewCharts() {
+  // Bar chart: Koin NU Growth
+  new Chart(document.getElementById('coinChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Cilacap','Sragen','Batang','Demak','Bantul','Rembang','Depok'],
+      datasets: [{
+        label: 'Penghimpunan (Rp Juta/bulan)',
+        data: [480, 600, 320, 290, 270, 210, 350],
+        backgroundColor: ['#06966a','#f59e0b','#0891b2','#6366f1','#06966a','#0891b2','#d97706'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+
+  // Radar: Prioritas
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Kemandirian Ekonomi','Transformasi Digital','Sains Pesantren','Advokasi Sosial','Inovasi Dakwah','Tata Kelola Org'],
+      datasets: [{
+        label: 'Prioritas MIP IV 2026',
+        data: [90, 85, 70, 95, 65, 80],
+        backgroundColor: 'rgba(6,150,106,0.2)',
+        borderColor: '#06966a',
+        pointBackgroundColor: '#34d399',
+        pointBorderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          ticks: { display: false },
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          pointLabels: { color: '#94a3b8', font: { size: 9 } },
+          angleLines: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+function initFilantropiCharts() {
+  new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Kesehatan Gratis','Modal UMKM Bergulir','Beasiswa Santri','Ambulans & Fasilitas','Pendidikan Komunitas'],
+      datasets: [{
+        data: [30, 25, 20, 15, 10],
+        backgroundColor: ['#06966a','#0891b2','#d97706','#6366f1','#f59e0b'],
+        borderWidth: 0,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 }, padding: 8 } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('barCompare'), {
+    type: 'bar',
+    data: {
+      labels: ['2020 (Manual)','2022 (Semi-digital)','2024 (QRIS)','2026 (Full Digital)','Target 2027'],
+      datasets: [{
+        label: 'Indeks Kapasitas Penghimpunan',
+        data: [100, 185, 340, 600, 1000],
+        backgroundColor: ['#374151','#4b5563','#0891b2','#06966a','#f59e0b'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
+
+// Init overview on load
+window.addEventListener('load', () => { initOverviewCharts(); window._overviewInit = true; });
+
+// ── AI CHAT ──
+const SYSTEM_PROMPT = `Kamu adalah Asisten Strategis NU Digital untuk Muktamar Ilmu Pengetahuan IV PWNU Jawa Tengah 2026 di UIN Sunan Kudus. Tema: "Konsolidasi Gerakan, Kemandirian Organisasi, dan Transformasi Sosial".
+
+Tugas kamu: memberikan analisis strategis yang mendalam tentang transformasi digital Nahdlatul Ulama berdasarkan kajian strategis berikut:
+
+KONTEKS UTAMA:
+- Filosofi Gusjigang Digital: Bagus (etika algoritma & cyber citizenship), Ngaji (literasi digital & sains komputasi), Dagang (kemandirian ekonomi digital & QRIS)
+- SIPNU (Jawa Tengah): administrasi paperless, KPI kepengurusan real-time, digital footprint PCNU-PRNU
+- Digdaya NU (Nasional): Single Sign-On NU.ID, Digdaya AI-NU berbasis Aswaja, penerbitan SK digital, repositori 36.400+ pesantren
+- Koin NU Digital: PCNU Sragen Rp600 juta/bulan, 7 pilot project PBNU, integrasi QRIS universal
+- Pesantren Cerdas (Xmart Village NU): IoT sensor lingkungan, VR pendidikan, geomapping wakaf, Elderly Care Apps "Berbakti"
+- Roadmap 2026-2030: F1 (Konsolidasi Cloud), F2 (Inklusi Finansial), F3 (Smart Village), F4 (AI Intelijen Data)
+- UU PDP No.27/2022: Privacy-by-Design, enkripsi, consent matrix NU.ID, audit keamanan
+
+Jawab dalam Bahasa Indonesia yang akademis namun mudah dipahami. Gunakan emoji relevan untuk memudahkan pembacaan. Berikan insight yang konkret dan berbasis data dari konteks di atas. Jawaban maksimal 350 kata per respons.`;
+
+let chatHistory = [];
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  addMessage(msg, 'user');
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+
+  const typing = addTyping();
+
+  chatHistory.push({ role: 'user', content: msg });
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: SYSTEM_PROMPT,
+        messages: chatHistory.slice(-10)
+      })
+    });
+
+    const data = await response.json();
+    const reply = data.reply || data.error || 'Maaf, terjadi kesalahan. Silakan coba lagi.';
+
+    typing.remove();
+    addMessage(reply, 'ai');
+    chatHistory.push({ role: 'assistant', content: reply });
+
+  } catch (err) {
+    typing.remove();
+    addMessage('⚠️ Terjadi kesalahan koneksi. Pastikan API Key Claude tersedia.', 'ai');
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addMessage(text, role) {
+  const container = document.getElementById('chatMessages');
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+    <div class="msg-meta">${role === 'user' ? 'Anda' : 'Asisten NU Digital'} • ${now}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function setPrompt(text) {
+  document.getElementById('chatInput').value = text;
+  document.getElementById('chatInput').focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+</script>
+</body>
+</html>
